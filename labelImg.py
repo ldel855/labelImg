@@ -53,7 +53,8 @@ from libs.hashableQListWidgetItem import HashableQListWidgetItem
 
 __appname__ = 'labelImg'
 
-brightnessFactor = 0
+brightness_factor = 1
+contrast_factor = 1
 
 class WindowMixin(object):
 
@@ -211,16 +212,16 @@ class MainWindow(QMainWindow, WindowMixin):
         quit = action(getStr('quit'), self.close,
                       'Ctrl+Q', 'quit', getStr('quitApp'))
 
-        incBrightness = action('&Increase Brightness', partial(self.imgManipulate, "brightness", 1.2),
+        incBrightness = action('&Increase Brightness', partial(self.imgManipulate, "brightness", 0.2),
                       '2', 'incBrightness', None, enabled=False)
 
-        decBrightness = action('&Decrease Brightness', partial(self.imgManipulate, "brightness", 0.8),
+        decBrightness = action('&Decrease Brightness', partial(self.imgManipulate, "brightness", -0.2),
                       '1', 'decBrightness', None, enabled=False)
 
-        incContrast = action('&Increase Contrast', partial(self.imgManipulate, "contrast", 1.2),
+        incContrast = action('&Increase Contrast', partial(self.imgManipulate, "contrast", 0.2),
                                '4', 'incContrast', None, enabled=False)
 
-        decContrast = action('&Decrease Contrast', partial(self.imgManipulate, "contrast", 0.8),
+        decContrast = action('&Decrease Contrast', partial(self.imgManipulate, "contrast", -0.2),
                                '3', 'decContrast', None, enabled=False)
 
         open = action(getStr('openFile'), self.openFile,
@@ -428,6 +429,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         # Application state.
         self.image = QImage()
+        self.bimage = QImage()
         self.filePath = ustr(defaultFilename)
         self.recentFiles = []
         self.maxRecent = 7
@@ -872,21 +874,27 @@ class MainWindow(QMainWindow, WindowMixin):
             self.image.save(buf, "BMP")
             imgPIL = Image.open(io.BytesIO(buf.data()))
 
+            global brightness_factor
+            global contrast_factor
+
             if operation == "brightness":
-                enhancer = ImageEnhance.Brightness(imgPIL)
-
+                brightness_factor+=val
             if operation == "contrast":
-                enhancer = ImageEnhance.Contrast(imgPIL)
+                contrast_factor+=val
 
-            # brightnessFactor = brightnessFactor + 1
-            imgPIL = enhancer.enhance(val)
+            # Brightness
+            brightness_enhance = ImageEnhance.Brightness(imgPIL)
+            imgPIL = brightness_enhance.enhance(brightness_factor)
+
+            # Contrast
+            contrast_enhance = ImageEnhance.Contrast(imgPIL)
+            imgPIL = contrast_enhance.enhance(contrast_factor)
 
             # Convert back to QImage etc for displaying
             imgPIL = imgPIL.convert("RGBA")
             data = imgPIL.tobytes("raw", "RGBA")
             qImg = QImage(data, imgPIL.size[0], imgPIL.size[1], QImage.Format_RGBA8888)
             self.canvas.refreshPixmap(QPixmap.fromImage(qImg))
-            self.image = qImg
             buf.close()
 
     def labelSelectionChanged(self):
