@@ -889,6 +889,13 @@ class MainWindow(QMainWindow, WindowMixin):
             self.image = qImg
             buf.close()
 
+    def gammaAdjust(self, pilImg, gamma):
+        arr = np.array(pilImg)
+        gammaCorrect = 1/gamma
+        newImg = 255.0 * (arr / 255.0)**gammaCorrect
+
+        return Image.fromarray(newImg)
+
     def labelSelectionChanged(self):
         item = self.currentItem()
         if item and self.canvas.editing():
