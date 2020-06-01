@@ -235,8 +235,8 @@ class MainWindow(QMainWindow, WindowMixin):
         decGamma = action('&Decrease Gamma', partial(self.imgManipulate, "gamma", -0.1),
                                '5', 'decGamma', None, enabled=False)
 
-        # delFile = action('&Delete File', self.deleteFile,
-        #                        'k', None, enabled=False)
+        delFile = action('&Delete File', self.deleteFile,
+                               'v', 'delFile', None, enabled=False)
 
         resetManipulations = action('&Reset Manipulations', self.resetManipulations,
                           'x', 'resetManipulations', None, enabled=False)
@@ -373,18 +373,18 @@ class MainWindow(QMainWindow, WindowMixin):
                               incContrast = incContrast, decContrast = decContrast, shapeLineColor=shapeLineColor, shapeFillColor=shapeFillColor,
                               incGamma=incGamma, decGamma=decGamma, zoom=zoom, zoomIn=zoomIn, zoomOut=zoomOut, zoomOrg=zoomOrg,
                               fitWindow=fitWindow, fitWidth=fitWidth, resetManipulations=resetManipulations,
-                              zoomActions=zoomActions, toggleTransforms=toggleTransforms,
+                              zoomActions=zoomActions, toggleTransforms=toggleTransforms, delFile=delFile,
                               fileMenuActions=(
                                   open, opendir, save, saveAs, close, resetAll, quit),
                               beginner=(), advanced=(),
                               editMenu=(edit, copy, delete, incBrightness, decBrightness, decContrast, incContrast, toggleTransforms,
-                                        incGamma, decGamma, resetManipulations, None, color1, self.drawSquaresOption),
+                                        incGamma, decGamma, resetManipulations, None, color1, delFile, self.drawSquaresOption),
                               beginnerContext=(create, edit, copy, delete),
                               advancedContext=(createMode, editMode, edit, copy,
                                                delete, shapeLineColor, shapeFillColor),
                               onLoadActive=(
-                                  close, create, createMode, editMode, incBrightness, decBrightness, decContrast,toggleTransforms, incGamma, decGamma,
-                                  incContrast, resetManipulations),
+                                  close, create, createMode, editMode, incBrightness, decBrightness, decContrast, toggleTransforms, incGamma, decGamma,
+                                  incContrast, resetManipulations, delFile),
                               onShapesPresent=(saveAs, hideAll, showAll))
 
         self.menus = struct(
@@ -1468,17 +1468,12 @@ class MainWindow(QMainWindow, WindowMixin):
         savedFileName = os.path.splitext(imgFileName)[0]
         savedPath = os.path.join(ustr(self.defaultSaveDir), savedFileName)
 
-        os.remove(imgFileName)
-        os.remove(savedPath)
+        if os.path.exists(savedPath+'.txt'):
+            os.remove(savedPath+'.txt')
+            self.imageData = read(None)
+            self.labelFile = None
+            self.canvas.verified = False
 
-        # Populate the File menu dynamically.
-        self.updateFileMenu()
-
-        # Since loading the file may take some time, make sure it runs in the background.
-        if self.filePath and os.path.isdir(self.filePath):
-            self.queueEvent(partial(self.importDirImages, self.filePath or ""))
-        elif self.filePath:
-            self.queueEvent(partial(self.loadFile, self.filePath or ""))
 
     def _saveFile(self, annotationFilePath):
         if annotationFilePath and self.saveLabels(annotationFilePath):
