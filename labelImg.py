@@ -204,7 +204,6 @@ class MainWindow(QMainWindow, WindowMixin):
         self.dock.setFeatures(self.dock.features() ^ self.dockFeatures)
 
         # Cropsy
-
         self.brightness_factor = 1
         self.contrast_factor = 1
         self.gammaVal = 1
@@ -235,6 +234,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
         decGamma = action('&Decrease Gamma', partial(self.imgManipulate, "gamma", -0.1),
                                '5', 'decGamma', None, enabled=False)
+
+        resetManipulations = action('&Reset Manipulations', self.resetManipulations,
+                          'x', 'resetManipulations', None, enabled=False)
 
         open = action(getStr('openFile'), self.openFile,
                       'Ctrl+O', 'open', getStr('openFileDetail'))
@@ -367,19 +369,19 @@ class MainWindow(QMainWindow, WindowMixin):
                               decBrightness= decBrightness, createMode=createMode, editMode=editMode, advancedMode=advancedMode,
                               incContrast = incContrast, decContrast = decContrast, shapeLineColor=shapeLineColor, shapeFillColor=shapeFillColor,
                               incGamma=incGamma, decGamma=decGamma, zoom=zoom, zoomIn=zoomIn, zoomOut=zoomOut, zoomOrg=zoomOrg,
-                              fitWindow=fitWindow, fitWidth=fitWidth,
+                              fitWindow=fitWindow, fitWidth=fitWidth, resetManipulations=resetManipulations,
                               zoomActions=zoomActions, toggleTransforms=toggleTransforms,
                               fileMenuActions=(
                                   open, opendir, save, saveAs, close, resetAll, quit),
                               beginner=(), advanced=(),
                               editMenu=(edit, copy, delete, incBrightness, decBrightness, decContrast, incContrast, toggleTransforms,
-                                        incGamma, decGamma, None, color1, self.drawSquaresOption),
+                                        incGamma, decGamma, resetManipulations, None, color1, self.drawSquaresOption),
                               beginnerContext=(create, edit, copy, delete),
                               advancedContext=(createMode, editMode, edit, copy,
                                                delete, shapeLineColor, shapeFillColor),
                               onLoadActive=(
                                   close, create, createMode, editMode, incBrightness, decBrightness, decContrast,toggleTransforms, incGamma, decGamma,
-                                  incContrast),
+                                  incContrast, resetManipulations),
                               onShapesPresent=(saveAs, hideAll, showAll))
 
         self.menus = struct(
@@ -903,6 +905,9 @@ class MainWindow(QMainWindow, WindowMixin):
             if operation == "gamma":
                 self.gammaVal += val
 
+                if self.gammaVal <= 0:
+                    self.gammaVal = 0.1
+
             if self.toggle_transform:
                 # Brightness
                 brightness_enhance = ImageEnhance.Brightness(imgPIL)
@@ -913,8 +918,6 @@ class MainWindow(QMainWindow, WindowMixin):
                 imgPIL = contrast_enhance.enhance(self.contrast_factor)
 
                 # Gamma
-                if self.gammaVal <= 0:
-                    self.gammaVal = 0.1
                 imgPIL = self.gammaAdjust(imgPIL, self.gammaVal)
 
             # Convert back to QImage etc for displaying
@@ -928,9 +931,19 @@ class MainWindow(QMainWindow, WindowMixin):
         arr = np.array(pilImg)
         gammaCorrect = 1/gamma
         newImg = 255.0 * (arr / 255.0)**gammaCorrect
-
         formatted = (newImg * 255 / np.max(newImg)).astype('uint8')
-        return Image.fromarray(formatted)
+
+        if gamma == 1:
+            return pilImg
+        else:
+            return Image.fromarray(formatted)
+
+    def resetManipulations(self):
+        self.gammaVal = 1
+        self.brightness_factor = 1
+        self.contrast_factor = 1
+
+        self.imgManipulate("", 0)
 
     def labelSelectionChanged(self):
         item = self.currentItem()
